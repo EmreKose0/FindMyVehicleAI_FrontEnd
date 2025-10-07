@@ -227,11 +227,29 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
     technologyLevel: '',
     soundQuality: '',
     vehicleSubtype: '',
+    fuelConsumption: '',
     mileage: '',
     year: ''
   });
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+
+  // Validation function
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    
+    if (!formData.budget) {
+      errors.budget = 'Budget range is required';
+    }
+    
+    if (!formData.vehicleSubtype) {
+      errors.vehicleSubtype = 'Vehicle type is required';
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   // Generate match percentage based on vehicle ranking
   const getMatchPercentage = (index: number) => {
@@ -276,23 +294,55 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
   // Demo data for motorcycles
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      // Backend POST request
-      const requestBody = {
-        vehicleType: vehicleType, // 'motorcycle' or 'car'
-        budget: formData.budget, // "150,000₺ - 250,000₺"
-        condition: formData.condition, // 'new' or 'used'
-        comfortLevel: formData.comfortLevel, // 'low', 'medium', 'high'
-        soundQuality: formData.soundQuality, // 'low', 'medium', 'high'
-        vehicleSubtype: formData.vehicleSubtype, // 'naked', 'cruiser', 'sport', etc.
-        mileage: formData.mileage, // "25,000 km"
-        year: formData.year, // "2018 or newer"
-        timestamp: new Date().toISOString()
+      // Map budget value to display text
+      const budgetMap: {[key: string]: string} = {
+        'under-100k': 'Under 100,000 TL',
+        '100k-250k': '100,000 - 250,000 TL',
+        '250k-500k': '250,000 - 500,000 TL',
+        '500k-750k': '500,000 - 750,000 TL',
+        '750k-900k': '750,000 - 900,000 TL',
+        'over-900k': 'Over 900,000 TL'
       };
 
-      console.log('POST Request Body:', requestBody);
+      // Map vehicle subtype to display text with proper capitalization
+      const subtypeMap: {[key: string]: string} = {
+        'naked': 'Naked',
+        'cruiser': 'Cruiser',
+        'sport': 'Sport',
+        'touring': 'Touring',
+        'adventure': 'Adventure',
+        'sedan': 'Sedan',
+        'suv': 'SUV',
+        'hatchback': 'Hatchback',
+        'coupe': 'Coupe',
+        'convertible': 'Convertible'
+      };
+
+      // Backend POST request - Only 3 required fields
+      const requestBody = {
+        vehicleType: vehicleType, // 'motorcycle' or 'car'
+        budget: budgetMap[formData.budget] || formData.budget, // e.g., "500,000 - 750,000 TL"
+        vehicleSubtype: subtypeMap[formData.vehicleSubtype] || formData.vehicleSubtype // e.g., "Adventure"
+      };
+
+      console.log('====================================');
+      console.log('🚀 BACKEND REQUEST - FIND MY VEHICLE');
+      console.log('====================================');
+      console.log('Vehicle Type:', requestBody.vehicleType);
+      console.log('Budget:', requestBody.budget);
+      console.log('Vehicle Subtype:', requestBody.vehicleSubtype);
+      console.log('====================================');
+      console.log('Full Request Body:', JSON.stringify(requestBody, null, 2));
+      console.log('====================================');
 
       const response = await fetch(API_ENDPOINT, {
         method: 'POST',
@@ -302,34 +352,52 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
         body: JSON.stringify(requestBody)
       });
 
+      console.log('====================================');
+      console.log('📥 BACKEND RESPONSE - STATUS');
+      console.log('====================================');
+      console.log('Status Code:', response.status);
+      console.log('Status Text:', response.statusText);
+      console.log('OK:', response.ok);
+      console.log('====================================');
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const backendResults = await response.json();
       
-      // Backend response format should be:
-      // {
-      //   success: true,
-      //   vehicles: [
-      //     {
-      //       id: 1,
-      //       brand: "Yamaha",
-      //       model: "MT-07",
-      //       year: 2023,
-      //       price: "₺185,000",
-      //       engine: "689cc",
-      //       power: "75 HP",
-      //       fuelConsumption: "4.2L/100km",
-      //       image: "/images/motor_on.svg"
-      //     }
-      //   ]
-      // }
+      console.log('====================================');
+      console.log('📦 BACKEND RESPONSE - DATA');
+      console.log('====================================');
+      console.log('Full Response:', JSON.stringify(backendResults, null, 2));
+      console.log('------------------------------------');
+      if (backendResults.recommendations) {
+        console.log('Number of Vehicles:', backendResults.recommendations.length);
+        console.log('Total Found:', backendResults.total_found);
+        console.log('Recommendations:', backendResults.recommendations);
+        backendResults.recommendations.forEach((vehicle: any, index: number) => {
+          console.log(`\n--- Vehicle ${index + 1} ---`);
+          console.log('Brand:', vehicle.brand);
+          console.log('Model:', vehicle.model);
+          console.log('Price:', vehicle.price);
+          console.log('Engine:', vehicle.engine);
+          console.log('Fuel Consumption:', vehicle.fuelConsumption);
+        });
+      } else {
+        console.log('⚠️ No recommendations array in response');
+      }
+      console.log('====================================');
       
-      setResults(backendResults.vehicles || []);
+      setResults(backendResults.recommendations || []);
       
     } catch (error) {
-      console.error('API Error:', error);
+      console.log('====================================');
+      console.log('❌ API ERROR');
+      console.log('====================================');
+      console.error('Error Type:', error instanceof Error ? error.name : typeof error);
+      console.error('Error Message:', error instanceof Error ? error.message : String(error));
+      console.error('Full Error:', error);
+      console.log('====================================');
       
       // Show empty results if API fails
       setResults([]);
@@ -353,8 +421,8 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-            className="flex flex-row w-full justify-center items-stretch overflow-x-auto mb-32"
-            style={{ gap: '8rem' }}
+            className="flex flex-row w-full justify-center items-stretch overflow-x-auto mb-32 px-8"
+            style={{ gap: '3rem' }}
           >
           {results.map((vehicle, index) => (
             <motion.div
@@ -369,16 +437,15 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                 stiffness: 100
               }}
               whileHover={{ 
-                scale: 1.08, 
-                y: -15,
-                rotateY: 5,
+                scale: 1.05, 
+                y: -10,
                 transition: { duration: 0.3, ease: "easeOut" }
               }}
               style={{
                 position: 'relative',
                 flexShrink: 0,
-                width: '420px',
-                minWidth: '420px'
+                width: '450px',
+                minWidth: '450px'
               }}
             >
               {/* Outer Glow Effect */}
@@ -439,27 +506,26 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                 />
                 
                 {/* Content */}
-                <div style={{ position: 'relative', padding: '32px' }}>
+                <div style={{ position: 'relative', padding: '40px' }}>
                   {/* Header Section */}
                   <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '24px', 
+                    textAlign: 'center',
                     marginBottom: '32px' 
                   }}>
                     {/* Vehicle Icon */}
                     <motion.div 
                       style={{
                         position: 'relative',
-                        width: '96px',
-                        height: '96px',
+                        width: '80px',
+                        height: '80px',
                         background: 'linear-gradient(to bottom right, rgba(59, 130, 246, 0.4), rgba(34, 211, 238, 0.4), rgba(168, 85, 247, 0.4))',
                         borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         border: '2px solid rgba(34, 211, 238, 0.6)',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        margin: '0 auto 20px auto'
                       }}
                       whileHover={{ rotate: 360 }}
                       transition={{ duration: 0.8, ease: "easeInOut" }}
@@ -469,7 +535,7 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                         animate={{ rotate: 360 }}
                         transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
                       />
-                      <div className="relative text-4xl z-10">
+                      <div className="relative text-3xl z-10">
                         {vehicleType === 'motorcycle' ? '🏍️' : '🚗'}
                       </div>
                       {/* Pulsing Ring */}
@@ -488,16 +554,17 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                     </motion.div>
                     
                     {/* Vehicle Info */}
-                    <div style={{ flex: 1 }}>
+                    <div>
                       <motion.h3 
                         style={{
-                          fontSize: '1.875rem',
+                          fontSize: '2.25rem',
                           fontWeight: 'bold',
                           background: 'linear-gradient(to right, #ffffff, #a7f3d0, #bfdbfe)',
                           WebkitBackgroundClip: 'text',
                           WebkitTextFillColor: 'transparent',
                           backgroundClip: 'text',
-                          marginBottom: '8px'
+                          marginBottom: '12px',
+                          textAlign: 'center'
                         }}
                         whileHover={{ scale: 1.05 }}
                         transition={{ duration: 0.2 }}
@@ -506,10 +573,11 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                       </motion.h3>
                       <motion.p 
                         style={{
-                          fontSize: '1.25rem',
+                          fontSize: '1.5rem',
                           color: '#67e8f9',
                           fontWeight: '600',
-                          marginBottom: '4px'
+                          marginBottom: '12px',
+                          textAlign: 'center'
                         }}
                         animate={{ opacity: [0.8, 1, 0.8] }}
                         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -519,211 +587,158 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                       <div style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
+                        justifyContent: 'center',
                         gap: '8px' 
                       }}>
                         <div style={{
                           width: '8px',
                           height: '8px',
-                          backgroundColor: '#fb923c',
+                          backgroundColor: '#10b981',
                           borderRadius: '50%',
                           animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
                         }}></div>
                         <p style={{
                           color: '#93c5fd',
-                          fontSize: '1.125rem',
+                          fontSize: '0.875rem',
                           fontWeight: '500'
-                        }}>{vehicle.year}</p>
+                        }}>ID: {vehicle.id}</p>
                       </div>
                     </div>
                   </div>
                   
                   {/* Stats Grid */}
                   <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    display: 'flex',
+                    flexDirection: 'column',
                     gap: '16px',
-                    marginBottom: '24px'
+                    marginBottom: '28px'
                   }}>
+                    {/* Price */}
                     <motion.div 
                       style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                        borderRadius: '12px',
-                        padding: '16px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                        border: '2px solid rgba(251, 191, 36, 0.4)',
+                        borderRadius: '16px',
+                        padding: '20px',
                         backdropFilter: 'blur(8px)'
                       }}
-                      whileHover={{ scale: 1.02, borderColor: "rgba(34, 211, 238, 0.6)" }}
+                      whileHover={{ scale: 1.02, borderColor: "rgba(251, 191, 36, 0.7)" }}
                       transition={{ duration: 0.2 }}
                     >
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '8px'
+                        justifyContent: 'center',
+                        marginBottom: '10px'
                       }}>
                         <span style={{
-                          color: '#bfdbfe',
-                          fontSize: '0.875rem',
+                          color: '#fbbf24',
+                          fontSize: '1rem',
                           textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          fontWeight: '600'
-                        }}>Price</span>
-                        <div style={{
-                          width: '12px',
-                          height: '12px',
-                          background: 'linear-gradient(to right, #fbbf24, #f59e0b)',
-                          borderRadius: '50%',
-                          boxShadow: '0 0 8px rgba(251, 191, 36, 0.6)'
-                        }}></div>
+                          letterSpacing: '0.1em',
+                          fontWeight: '700'
+                        }}>💰 PRICE</span>
                       </div>
                       <motion.div 
                         style={{
-                          fontSize: '1.5rem',
+                          fontSize: '1.75rem',
                           fontWeight: '900',
                           background: 'linear-gradient(to right, #fbbf24, #f59e0b)',
                           WebkitBackgroundClip: 'text',
                           WebkitTextFillColor: 'transparent',
                           backgroundClip: 'text',
-                          textShadow: '0 0 15px rgba(251, 191, 36, 0.8)',
-                          filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.6))',
+                          textAlign: 'center',
+                          filter: 'drop-shadow(0 0 10px rgba(251, 191, 36, 0.6))',
                           marginTop: '4px'
                         }}
                         animate={{ 
                           scale: [1, 1.05, 1],
                           filter: [
-                            'drop-shadow(0 0 8px rgba(251, 191, 36, 0.6))',
-                            'drop-shadow(0 0 15px rgba(251, 191, 36, 0.9))',
-                            'drop-shadow(0 0 8px rgba(251, 191, 36, 0.6))'
+                            'drop-shadow(0 0 10px rgba(251, 191, 36, 0.6))',
+                            'drop-shadow(0 0 20px rgba(251, 191, 36, 0.9))',
+                            'drop-shadow(0 0 10px rgba(251, 191, 36, 0.6))'
                           ]
                         }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                       >
-                        {vehicle.price}
+                        ₺{vehicle.price}
                       </motion.div>
                     </motion.div>
                     
-                    <motion.div 
-                      style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        backdropFilter: 'blur(8px)'
-                      }}
-                      whileHover={{ scale: 1.02, borderColor: "rgba(34, 211, 238, 0.6)" }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '8px'
-                      }}>
-                        <span style={{
-                          color: '#bfdbfe',
-                          fontSize: '0.875rem',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          fontWeight: '600'
-                        }}>Engine</span>
+                    {/* Engine & Fuel Row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      {/* Engine */}
+                      <motion.div 
+                        style={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                          border: '2px solid rgba(74, 222, 128, 0.4)',
+                          borderRadius: '16px',
+                          padding: '20px',
+                          backdropFilter: 'blur(8px)'
+                        }}
+                        whileHover={{ scale: 1.02, borderColor: "rgba(74, 222, 128, 0.7)" }}
+                        transition={{ duration: 0.2 }}
+                      >
                         <div style={{
-                          width: '12px',
-                          height: '12px',
-                          background: 'linear-gradient(to right, #4ade80, #10b981)',
-                          borderRadius: '50%',
-                          boxShadow: '0 0 8px rgba(74, 222, 128, 0.6)'
-                        }}></div>
-                      </div>
-                      <div style={{
-                        fontSize: '1.125rem',
-                        fontWeight: '700',
-                        color: '#ffffff',
-                        textShadow: '0 0 10px rgba(255, 255, 255, 0.3)',
-                        marginTop: '4px'
-                      }}>{vehicle.engine}</div>
-                    </motion.div>
-                    
-                    <motion.div 
-                      style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        backdropFilter: 'blur(8px)'
-                      }}
-                      whileHover={{ scale: 1.02, borderColor: "rgba(34, 211, 238, 0.6)" }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '8px'
-                      }}>
-                        <span style={{
-                          color: '#bfdbfe',
-                          fontSize: '0.875rem',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          fontWeight: '600'
-                        }}>Power</span>
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginBottom: '10px'
+                        }}>
+                          <span style={{
+                            color: '#4ade80',
+                            fontSize: '1rem',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.1em',
+                            fontWeight: '700'
+                          }}>⚙️ ENGINE</span>
+                        </div>
                         <div style={{
-                          width: '12px',
-                          height: '12px',
-                          background: 'linear-gradient(to right, #f87171, #ec4899)',
-                          borderRadius: '50%',
-                          boxShadow: '0 0 8px rgba(248, 113, 113, 0.6)'
-                        }}></div>
-                      </div>
-                      <div style={{
-                        fontSize: '1.125rem',
-                        fontWeight: '700',
-                        color: '#ffffff',
-                        textShadow: '0 0 10px rgba(255, 255, 255, 0.3)',
-                        marginTop: '4px'
-                      }}>{vehicle.power}</div>
-                    </motion.div>
-                    
-                    <motion.div 
-                      style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        border: '1px solid rgba(59, 130, 246, 0.3)',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        backdropFilter: 'blur(8px)'
-                      }}
-                      whileHover={{ scale: 1.02, borderColor: "rgba(34, 211, 238, 0.6)" }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '8px'
-                      }}>
-                        <span style={{
-                          color: '#bfdbfe',
-                          fontSize: '0.875rem',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          fontWeight: '600'
-                        }}>Fuel</span>
+                          fontSize: '1.5rem',
+                          fontWeight: '700',
+                          color: '#ffffff',
+                          textAlign: 'center',
+                          textShadow: '0 0 15px rgba(74, 222, 128, 0.5)',
+                          marginTop: '4px'
+                        }}>{vehicle.engine}</div>
+                      </motion.div>
+                      
+                      {/* Fuel */}
+                      <motion.div 
+                        style={{
+                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                          border: '2px solid rgba(96, 165, 250, 0.4)',
+                          borderRadius: '16px',
+                          padding: '20px',
+                          backdropFilter: 'blur(8px)'
+                        }}
+                        whileHover={{ scale: 1.02, borderColor: "rgba(96, 165, 250, 0.7)" }}
+                        transition={{ duration: 0.2 }}
+                      >
                         <div style={{
-                          width: '12px',
-                          height: '12px',
-                          background: 'linear-gradient(to right, #60a5fa, #a855f7)',
-                          borderRadius: '50%',
-                          boxShadow: '0 0 8px rgba(96, 165, 250, 0.6)'
-                        }}></div>
-                      </div>
-                      <div style={{
-                        fontSize: '1.125rem',
-                        fontWeight: '700',
-                        color: '#ffffff',
-                        textShadow: '0 0 10px rgba(255, 255, 255, 0.3)',
-                        marginTop: '4px'
-                      }}>{vehicle.fuelConsumption}</div>
-                    </motion.div>
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginBottom: '10px'
+                        }}>
+                          <span style={{
+                            color: '#60a5fa',
+                            fontSize: '1rem',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.1em',
+                            fontWeight: '700'
+                          }}>⛽ FUEL</span>
+                        </div>
+                        <div style={{
+                          fontSize: '1.5rem',
+                          fontWeight: '700',
+                          color: '#ffffff',
+                          textAlign: 'center',
+                          textShadow: '0 0 15px rgba(96, 165, 250, 0.5)',
+                          marginTop: '4px'
+                        }}>{vehicle.fuelConsumption} L</div>
+                      </motion.div>
+                    </div>
                   </div>
                   
                   {/* Match Section */}
@@ -959,34 +974,88 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
             transition={{ duration: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
           >
-              {/* Budget Input */}
+              {/* Budget Range Select */}
               <div className="space-y-2">
                 <Label className="text-blue-200 flex items-center gap-2">
                   <DollarSign className="w-4 h-4" />
-                  Budget Range
+                  Budget Range <span className="text-red-400">*</span>
                 </Label>
-                <motion.div 
-                  className="relative"
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.2 }}
+                <Select
+                  value={formData.budget}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, budget: value });
+                    // Clear validation error when user makes a selection
+                    if (validationErrors.budget) {
+                      setValidationErrors({ ...validationErrors, budget: '' });
+                    }
+                  }}
                 >
-                  <Input
-                    type="text"
-                    placeholder="150,000₺ - 250,000₺"
-                    value={formData.budget}
-                    onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                    className="bg-black/40 backdrop-blur-sm border-blue-400/30 text-blue-100 placeholder:text-blue-300/50 focus:border-blue-400 focus:ring-blue-400/30 hover:border-blue-400/50 hover:bg-black/50 transition-all duration-300"
-                  />
-                  <motion.div 
-                    className="absolute inset-0 rounded-md bg-gradient-to-r from-blue-500/10 to-transparent pointer-events-none"
-                    whileHover={{ opacity: 0.8 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </motion.div>
+                  <SelectTrigger className={`bg-black/40 text-blue-100 focus:ring-blue-400/30 ${
+                    validationErrors.budget 
+                      ? 'border-red-400 focus:border-red-400' 
+                      : 'border-blue-400/30 focus:border-blue-400'
+                  }`}>
+                    <SelectValue placeholder="Select budget range" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-black/90 border-blue-400/30">
+                    <SelectItem 
+                      key="under-100k"
+                      value="under-100k"
+                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
+                    >
+                      Under 100,000 TL
+                    </SelectItem>
+                    <SelectItem 
+                      key="100k-250k"
+                      value="100k-250k"
+                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
+                    >
+                      100,000 - 250,000 TL
+                    </SelectItem>
+                    <SelectItem 
+                      key="250k-500k"
+                      value="250k-500k"
+                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
+                    >
+                      250,000 - 500,000 TL
+                    </SelectItem>
+                    <SelectItem 
+                      key="500k-750k"
+                      value="500k-750k"
+                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
+                    >
+                      500,000 - 750,000 TL
+                    </SelectItem>
+                    <SelectItem 
+                      key="750k-900k"
+                      value="750k-900k"
+                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
+                    >
+                      750,000 - 900,000 TL
+                    </SelectItem>
+                    <SelectItem 
+                      key="over-900k"
+                      value="over-900k"
+                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
+                    >
+                      Over 900,000 TL
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {validationErrors.budget && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-sm flex items-center gap-1"
+                  >
+                    <span>⚠️</span>
+                    {validationErrors.budget}
+                  </motion.p>
+                )}
               </div>
 
 
-              {/* New or Used Select */}
+              {/* New or Used Select - TEMPORARILY DISABLED */}
               <div className="space-y-2">
                 <Label className="text-blue-200 flex items-center gap-2">
                   <Settings className="w-4 h-4" />
@@ -1022,13 +1091,23 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
               <div className="space-y-2">
                 <Label className="text-blue-200 flex items-center gap-2">
                   <Settings className="w-4 h-4" />
-                  {vehicleType === 'motorcycle' ? 'Bike' : 'Car'} Type
+                  {vehicleType === 'motorcycle' ? 'Bike' : 'Car'} Type <span className="text-red-400">*</span>
                 </Label>
                 <Select
                   value={formData.vehicleSubtype}
-                  onValueChange={(value) => setFormData({ ...formData, vehicleSubtype: value })}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, vehicleSubtype: value });
+                    // Clear validation error when user makes a selection
+                    if (validationErrors.vehicleSubtype) {
+                      setValidationErrors({ ...validationErrors, vehicleSubtype: '' });
+                    }
+                  }}
                 >
-                  <SelectTrigger className="bg-black/40 border-blue-400/30 text-blue-100 focus:border-blue-400 focus:ring-blue-400/30">
+                  <SelectTrigger className={`bg-black/40 text-blue-100 focus:ring-blue-400/30 ${
+                    validationErrors.vehicleSubtype 
+                      ? 'border-red-400 focus:border-red-400' 
+                      : 'border-blue-400/30 focus:border-blue-400'
+                  }`}>
                     <SelectValue placeholder={`Select ${vehicleType} type`} />
                   </SelectTrigger>
                   <SelectContent className="bg-black/90 border-blue-400/30">
@@ -1043,6 +1122,16 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                     ))}
                   </SelectContent>
                 </Select>
+                {validationErrors.vehicleSubtype && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-sm flex items-center gap-1"
+                  >
+                    <span>⚠️</span>
+                    {validationErrors.vehicleSubtype}
+                  </motion.p>
+                )}
               </div>
 
               {/* Technology Level Select */}
