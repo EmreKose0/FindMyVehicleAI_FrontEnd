@@ -23,7 +23,11 @@ const vehicleOptions = {
     { value: 'cruiser', label: 'Cruiser' },
     { value: 'sport', label: 'Sport' },
     { value: 'touring', label: 'Touring' },
-    { value: 'adventure', label: 'Adventure' }
+    { value: 'adventure', label: 'Adventure' },
+    { value: 'retro', label: 'Retro' },
+    { value: 'scrambler', label: 'Scrambler' },
+    { value: 'scooter', label: 'Scooter' },
+    { value: 'electric', label: 'Electric' }
   ],
   car: [
     { value: 'sedan', label: 'Sedan' },
@@ -416,7 +420,20 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
     <div className="relative w-full">
       {/* Results Cards - Replace form when visible */}
       {results.length > 0 ? (
-        <div className="w-full">
+        <div className="w-full relative">
+          {/* Background Effect - Same as main form */}
+          <motion.div 
+            className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-3xl blur-3xl"
+            animate={{ 
+              opacity: [0.3, 0.5, 0.3],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{ 
+              duration: 4, 
+              repeat: Infinity, 
+              ease: "easeInOut" 
+            }}
+          />
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -424,7 +441,14 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
             className="flex flex-row w-full justify-center items-stretch overflow-x-auto mb-32 px-8"
             style={{ gap: '3rem' }}
           >
-          {results.map((vehicle, index) => (
+          {[...results].sort((a, b) => {
+            // Custom sort: ID 2 (left), ID 1 (center), ID 3 (right)
+            if (a.id === 2) return -1;  // ID 2 goes first (left)
+            if (b.id === 2) return 1;
+            if (a.id === 1) return -1;  // ID 1 goes second (center)
+            if (b.id === 1) return 1;
+            return a.id - b.id;  // ID 3 and others go last (right)
+          }).map((vehicle, index) => (
             <motion.div
               key={vehicle.id}
               initial={{ opacity: 0, y: 80, rotateX: 25, scale: 0.8 }}
@@ -472,14 +496,15 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                 }}
               />
               
-              {/* Main Card */}
+              {/* Main Card - Enhanced Glassmorphism like main form */}
               <div style={{
                 position: 'relative',
-                background: 'linear-gradient(to bottom right, rgba(0, 0, 0, 0.9), rgba(17, 24, 39, 0.95), rgba(0, 0, 0, 0.9))',
-                backdropFilter: 'blur(40px)',
-                border: '2px solid rgba(59, 130, 246, 0.6)',
-                borderRadius: '16px',
-                overflow: 'hidden'
+                background: 'rgba(0, 0, 0, 0.75)',
+                backdropFilter: 'blur(24px)',
+                border: '2px solid rgba(59, 130, 246, 0.5)',
+                borderRadius: '20px',
+                overflow: 'hidden',
+                boxShadow: '0 15px 45px rgba(0,0,0,0.6)'
               }}>
                 {/* Animated Border */}
                 <motion.div
@@ -505,6 +530,10 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                   }}
                 />
                 
+                {/* Cyberpunk accent lines */}
+                <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent" />
+                <div className="absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+                
                 {/* Content */}
                 <div style={{ position: 'relative', padding: '40px' }}>
                   {/* Header Section */}
@@ -512,46 +541,89 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                     textAlign: 'center',
                     marginBottom: '32px' 
                   }}>
-                    {/* Vehicle Icon */}
-                    <motion.div 
-                      style={{
-                        position: 'relative',
-                        width: '80px',
-                        height: '80px',
-                        background: 'linear-gradient(to bottom right, rgba(59, 130, 246, 0.4), rgba(34, 211, 238, 0.4), rgba(168, 85, 247, 0.4))',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: '2px solid rgba(34, 211, 238, 0.6)',
-                        overflow: 'hidden',
-                        margin: '0 auto 20px auto'
-                      }}
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.8, ease: "easeInOut" }}
-                    >
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-blue-400/30 to-cyan-400/30 rounded-full"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                      />
-                      <div className="relative text-3xl z-10">
-                        {vehicleType === 'motorcycle' ? '🏍️' : '🚗'}
-                      </div>
-                      {/* Pulsing Ring */}
-                      <motion.div
-                        className="absolute inset-0 border-2 border-cyan-400/40 rounded-full"
-                        animate={{ 
-                          scale: [1, 1.2, 1],
-                          opacity: [0.8, 0.3, 0.8]
-                        }}
-                        transition={{ 
-                          duration: 2, 
-                          repeat: Infinity, 
-                          ease: "easeInOut" 
-                        }}
-                      />
-                    </motion.div>
+                    {/* Medal Icon based on ID */}
+                    {(() => {
+                      const getMedalConfig = (id: number) => {
+                        if (id === 1) {
+                          return {
+                            emoji: '🥇',
+                            gradient: 'linear-gradient(to bottom right, rgba(255, 215, 0, 0.5), rgba(255, 193, 7, 0.5), rgba(255, 152, 0, 0.4))',
+                            border: '3px solid rgba(255, 215, 0, 0.8)',
+                            glow: 'rgba(255, 215, 0, 0.6)',
+                            label: 'GOLD',
+                            color: '#ffd700'
+                          };
+                        } else if (id === 2) {
+                          return {
+                            emoji: '🥈',
+                            gradient: 'linear-gradient(to bottom right, rgba(192, 192, 192, 0.5), rgba(169, 169, 169, 0.5), rgba(128, 128, 128, 0.4))',
+                            border: '3px solid rgba(192, 192, 192, 0.8)',
+                            glow: 'rgba(192, 192, 192, 0.6)',
+                            label: 'SILVER',
+                            color: '#c0c0c0'
+                          };
+                        } else {
+                          return {
+                            emoji: '🥉',
+                            gradient: 'linear-gradient(to bottom right, rgba(205, 127, 50, 0.5), rgba(184, 115, 51, 0.5), rgba(150, 90, 40, 0.4))',
+                            border: '3px solid rgba(205, 127, 50, 0.8)',
+                            glow: 'rgba(205, 127, 50, 0.6)',
+                            label: 'BRONZE',
+                            color: '#cd7f32'
+                          };
+                        }
+                      };
+                      const medal = getMedalConfig(vehicle.id);
+                      
+                      return (
+                        <>
+                          <motion.div 
+                            style={{
+                              fontSize: '5rem',
+                              margin: '0 auto 16px auto',
+                              display: 'inline-block',
+                              filter: `drop-shadow(0 0 20px ${medal.glow})`
+                            }}
+                            whileHover={{ scale: 1.2, rotate: 15 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                            animate={{
+                              filter: [
+                                `drop-shadow(0 0 20px ${medal.glow})`,
+                                `drop-shadow(0 0 35px ${medal.glow})`,
+                                `drop-shadow(0 0 20px ${medal.glow})`
+                              ]
+                            }}
+                          >
+                            {medal.emoji}
+                          </motion.div>
+                          
+                          {/* Medal Label */}
+                          <motion.div
+                            style={{
+                              fontSize: '0.875rem',
+                              fontWeight: '800',
+                              color: medal.color,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.15em',
+                              marginBottom: '16px',
+                              textShadow: `0 0 10px ${medal.glow}`,
+                              filter: `drop-shadow(0 0 8px ${medal.glow})`
+                            }}
+                            animate={{
+                              opacity: [0.7, 1, 0.7],
+                              filter: [
+                                `drop-shadow(0 0 8px ${medal.glow})`,
+                                `drop-shadow(0 0 16px ${medal.glow})`,
+                                `drop-shadow(0 0 8px ${medal.glow})`
+                              ]
+                            }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                          >
+                            ⭐ {medal.label} ⭐
+                          </motion.div>
+                        </>
+                      );
+                    })()}
                     
                     {/* Vehicle Info */}
                     <div>
@@ -584,25 +656,6 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                       >
                         {vehicle.model}
                       </motion.p>
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        gap: '8px' 
-                      }}>
-                        <div style={{
-                          width: '8px',
-                          height: '8px',
-                          backgroundColor: '#10b981',
-                          borderRadius: '50%',
-                          animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-                        }}></div>
-                        <p style={{
-                          color: '#93c5fd',
-                          fontSize: '0.875rem',
-                          fontWeight: '500'
-                        }}>ID: {vehicle.id}</p>
-                      </div>
                     </div>
                   </div>
                   
@@ -869,6 +922,12 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                     delay: index * 0.5
                   }}
                 />
+                
+                {/* Cyberpunk corner accents */}
+                <div className="absolute top-4 left-4 w-4 h-4 border-l-2 border-t-2 border-blue-400/50" />
+                <div className="absolute top-4 right-4 w-4 h-4 border-r-2 border-t-2 border-cyan-400/50" />
+                <div className="absolute bottom-4 left-4 w-4 h-4 border-l-2 border-b-2 border-cyan-400/50" />
+                <div className="absolute bottom-4 right-4 w-4 h-4 border-r-2 border-b-2 border-blue-400/50" />
               </div>
             </motion.div>
           ))}
@@ -879,28 +938,24 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.8 }}
-          className="w-full flex flex-col items-center gap-4 mt-32"
+          className="w-full flex flex-col items-center gap-4 mt-16 relative z-50"
+          style={{ marginBottom: '100px' }}
         >
-          {/* Search Icon */}
-          <motion.div
-            whileHover={{ scale: 1.1, y: -2 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-16 h-16 bg-black/60 backdrop-blur-md border border-purple-400/40 rounded-full flex items-center justify-center text-purple-400 hover:text-purple-300 hover:border-purple-400/60 transition-all duration-300 shadow-lg hover:shadow-xl"
-          >
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </motion.div>
-
-          {/* Refresh Icon */}
+          {/* Refresh Icon - New Search */}
           <motion.button
             onClick={() => window.location.reload()}
-            whileHover={{ scale: 1.1, rotate: 180 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-16 h-16 bg-black/60 backdrop-blur-md border border-blue-400/40 rounded-full flex items-center justify-center text-blue-400 hover:text-cyan-300 hover:border-cyan-400/60 transition-all duration-300 shadow-lg hover:shadow-xl"
+            whileHover={{ scale: 1.15, rotate: 180 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-20 h-20 bg-gradient-to-r from-blue-500/80 to-cyan-500/80 backdrop-blur-md border-2 border-cyan-400/60 rounded-full flex items-center justify-center text-white hover:from-cyan-500/90 hover:to-blue-500/90 hover:border-cyan-300 transition-all duration-300 shadow-xl hover:shadow-2xl cursor-pointer relative overflow-hidden"
+            style={{ zIndex: 100 }}
           >
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            />
+            <svg className="w-10 h-10 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </motion.button>
         </motion.div>
