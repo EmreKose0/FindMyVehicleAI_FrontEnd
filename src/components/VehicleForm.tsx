@@ -227,13 +227,9 @@ function LoadingPortal({ isVisible, vehicleType }: { isVisible: boolean, vehicle
 export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFormProps) {
   const [formData, setFormData] = useState({
     budget: '',
-    condition: '',
-    technologyLevel: '',
     soundQuality: '',
     vehicleSubtype: '',
-    fuelConsumption: '',
-    mileage: '',
-    year: ''
+    fuelConsumption: ''
   });
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -249,6 +245,14 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
     
     if (!formData.vehicleSubtype) {
       errors.vehicleSubtype = 'Vehicle type is required';
+    }
+    
+    if (!formData.soundQuality) {
+      errors.soundQuality = 'Sound quality is required';
+    }
+    
+    if (!formData.fuelConsumption) {
+      errors.fuelConsumption = 'Fuel consumption is required';
     }
     
     setValidationErrors(errors);
@@ -331,11 +335,15 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
         'convertible': 'Convertible'
       };
 
-      // Backend POST request - Only 3 required fields
+      // No mapping for sound/fuel; send raw enum values expected by backend
+
+      // Backend POST request
       const requestBody = {
         vehicleType: vehicleType, // 'motorcycle' or 'car'
         budget: budgetMap[formData.budget] || formData.budget, // e.g., "500,000 - 750,000 TL"
-        vehicleSubtype: subtypeMap[formData.vehicleSubtype] || formData.vehicleSubtype // e.g., "Adventure"
+        vehicleSubtype: subtypeMap[formData.vehicleSubtype] || formData.vehicleSubtype, // e.g., "Adventure"
+        sound: formData.soundQuality,
+        fuelConsumption: formData.fuelConsumption
       };
 
       console.log('====================================');
@@ -344,6 +352,8 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
       console.log('Vehicle Type:', requestBody.vehicleType);
       console.log('Budget:', requestBody.budget);
       console.log('Vehicle Subtype:', requestBody.vehicleSubtype);
+      console.log('Sound:', requestBody.sound);
+      console.log('Fuel Consumption:', requestBody.fuelConsumption);
       console.log('====================================');
       console.log('Full Request Body:', JSON.stringify(requestBody, null, 2));
       console.log('====================================');
@@ -375,11 +385,12 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
       console.log('====================================');
       console.log('Full Response:', JSON.stringify(backendResults, null, 2));
       console.log('------------------------------------');
-      if (backendResults.recommendations) {
-        console.log('Number of Vehicles:', backendResults.recommendations.length);
+      const vehicles = backendResults.recommendations || backendResults.vehicles || [];
+      if (vehicles && vehicles.length > 0) {
+        console.log('Number of Vehicles:', vehicles.length);
         console.log('Total Found:', backendResults.total_found);
-        console.log('Recommendations:', backendResults.recommendations);
-        backendResults.recommendations.forEach((vehicle: any, index: number) => {
+        console.log('Vehicles:', vehicles);
+        vehicles.forEach((vehicle: any, index: number) => {
           console.log(`\n--- Vehicle ${index + 1} ---`);
           console.log('Brand:', vehicle.brand);
           console.log('Model:', vehicle.model);
@@ -388,11 +399,11 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
           console.log('Fuel Consumption:', vehicle.fuelConsumption);
         });
       } else {
-        console.log('⚠️ No recommendations array in response');
+        console.log('⚠️ No vehicles found in response');
       }
       console.log('====================================');
       
-      setResults(backendResults.recommendations || []);
+      setResults(vehicles);
       
     } catch (error) {
       console.log('====================================');
@@ -1110,37 +1121,7 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
               </div>
 
 
-              {/* New or Used Select - TEMPORARILY DISABLED */}
-              <div className="space-y-2">
-                <Label className="text-blue-200 flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  Condition
-                </Label>
-                <Select
-                  value={formData.condition}
-                  onValueChange={(value) => setFormData({ ...formData, condition: value })}
-                >
-                  <SelectTrigger className="bg-black/40 border-blue-400/30 text-blue-100 focus:border-blue-400 focus:ring-blue-400/30">
-                    <SelectValue placeholder="New or Used?" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-black/90 border-blue-400/30">
-                    <SelectItem 
-                      key="new"
-                      value="new"
-                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
-                    >
-                      New
-                    </SelectItem>
-                    <SelectItem 
-                      key="used"
-                      value="used"
-                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
-                    >
-                      Used
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Condition removed */}
 
               {/* Vehicle Type Select */}
               <div className="space-y-2">
@@ -1189,51 +1170,7 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                 )}
               </div>
 
-              {/* Technology Level Select */}
-              <div className="space-y-2">
-                <Label className="text-blue-200 flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  Technology Level
-                </Label>
-                <Select
-                  value={formData.technologyLevel}
-                  onValueChange={(value) => setFormData({ ...formData, technologyLevel: value })}
-                >
-                  <SelectTrigger className="bg-black/40 border-blue-400/30 text-blue-100 focus:border-blue-400 focus:ring-blue-400/30">
-                    <SelectValue placeholder="Select comfort level" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-black/90 border-blue-400/30">
-                    <SelectItem 
-                      key="dont-care"
-                      value="dont-care"
-                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
-                    >
-                      Don't Care
-                    </SelectItem>
-                    <SelectItem 
-                      key="high"
-                      value="high"
-                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
-                    >
-                      With High Technology
-                    </SelectItem>
-                    <SelectItem 
-                      key="medium"
-                      value="medium"
-                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
-                    >
-                      With Basic Technology (ABS etc.)
-                    </SelectItem>
-                    <SelectItem 
-                      key="low"
-                      value="low"
-                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
-                    >
-                      No Technology
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Technology Level removed */}
 
               {/* Sound Quality Select */}
               <div className="space-y-2">
@@ -1243,9 +1180,18 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                 </Label>
                 <Select
                   value={formData.soundQuality}
-                  onValueChange={(value) => setFormData({ ...formData, soundQuality: value })}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, soundQuality: value });
+                    if (validationErrors.soundQuality) {
+                      setValidationErrors({ ...validationErrors, soundQuality: '' });
+                    }
+                  }}
                 >
-                  <SelectTrigger className="bg-black/40 border-blue-400/30 text-blue-100 focus:border-blue-400 focus:ring-blue-400/30">
+                  <SelectTrigger className={`bg-black/40 text-blue-100 focus:ring-blue-400/30 ${
+                    validationErrors.soundQuality 
+                      ? 'border-red-400 focus:border-red-400' 
+                      : 'border-blue-400/30 focus:border-blue-400'
+                  }`}>
                     <SelectValue placeholder="Select sound quality" />
                   </SelectTrigger>
                   <SelectContent className="bg-black/90 border-blue-400/30">
@@ -1255,13 +1201,6 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                       className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
                     >
                       Don't Care
-                    </SelectItem>
-                    <SelectItem 
-                      key="sound-low"
-                      value="low"
-                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
-                    >
-                      Low
                     </SelectItem>
                     <SelectItem 
                       key="sound-medium"
@@ -1279,6 +1218,16 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                {validationErrors.soundQuality && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-sm flex items-center gap-1"
+                  >
+                    <span>⚠️</span>
+                    {validationErrors.soundQuality}
+                  </motion.p>
+                )}
               </div>
 
               {/* Fuel Consumption Select */}
@@ -1289,9 +1238,18 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                 </Label>
                 <Select
                   value={formData.fuelConsumption}
-                  onValueChange={(value) => setFormData({ ...formData, fuelConsumption: value })}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, fuelConsumption: value });
+                    if (validationErrors.fuelConsumption) {
+                      setValidationErrors({ ...validationErrors, fuelConsumption: '' });
+                    }
+                  }}
                 >
-                  <SelectTrigger className="bg-black/40 border-blue-400/30 text-blue-100 focus:border-blue-400 focus:ring-blue-400/30">
+                  <SelectTrigger className={`bg-black/40 text-blue-100 focus:ring-blue-400/30 ${
+                    validationErrors.fuelConsumption 
+                      ? 'border-red-400 focus:border-red-400' 
+                      : 'border-blue-400/30 focus:border-blue-400'
+                  }`}>
                     <SelectValue placeholder="Select fuel consumption" />
                   </SelectTrigger>
                   <SelectContent className="bg-black/90 border-blue-400/30">
@@ -1302,138 +1260,37 @@ export function VehicleForm({ vehicleType, onSubmit, onSubmitHover }: VehicleFor
                     >
                       Don't Care
                     </SelectItem>
-                    <SelectItem 
-                      key="fuel-3-5lt"
-                      value="3-5lt"
-                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
-                    >
-                      3-5 lt
-                    </SelectItem>
-                    <SelectItem 
-                      key="fuel-5-8lt"
-                      value="5-8lt"
-                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
-                    >
-                      5-8 lt
-                    </SelectItem>
-                    <SelectItem 
-                      key="fuel-9plus"
-                      value="9+lt"
-                      className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
-                    >
-                      9+ lt
-                    </SelectItem>
+                  <SelectItem 
+                    key="fuel-low"
+                    value="low"
+                    className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
+                  >
+                    Low
+                  </SelectItem>
+                  <SelectItem 
+                    key="fuel-medium"
+                    value="medium"
+                    className="text-blue-100 focus:bg-blue-400/20 focus:text-blue-100"
+                  >
+                    Medium
+                  </SelectItem>
                   </SelectContent>
                 </Select>
+                {validationErrors.fuelConsumption && (
+                  <motion.p 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-red-400 text-sm flex items-center gap-1"
+                  >
+                    <span>⚠️</span>
+                    {validationErrors.fuelConsumption}
+                  </motion.p>
+                )}
               </div>
 
-              {/* Mileage Input */}
-              <div className="space-y-2">
-                <Label className={`flex items-center gap-2 ${formData.condition === 'new' ? 'text-blue-300/50' : 'text-blue-200'}`}>
-                  <motion.div
-                    animate={{ opacity: formData.condition === 'new' ? 0.3 : 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <Gauge className="w-4 h-4" />
-                  </motion.div>
-                  Max Km
-                  {formData.condition === 'new' && (
-                    <span className="text-xs text-blue-300/70 ml-2">(Minimal for new vehicles)</span>
-                  )}
-                </Label>
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder={
-                      formData.condition === 'new' 
-                        ? 'Çok düşük km' 
-                        : 'Maximum kilometre değeri'
-                    }
-                    value={formData.condition === 'new' ? 'Düşük Km (Yeni Araç)' : formData.mileage}
-                    onChange={(e) => {
-                      if (formData.condition !== 'new') {
-                        setFormData({ ...formData, mileage: e.target.value });
-                      }
-                    }}
-                    disabled={formData.condition === 'new'}
-                    className={`border-blue-400/30 text-blue-100 placeholder:text-blue-300/50 focus:border-blue-400 focus:ring-blue-400/30 transition-all duration-300 ${
-                      formData.condition === 'new' 
-                        ? 'bg-black/20 border-blue-400/20 text-blue-200/50 cursor-not-allowed' 
-                        : 'bg-black/40 hover:bg-black/50'
-                    }`}
-                  />
-                  <motion.div 
-                    className="absolute inset-0 rounded-md pointer-events-none"
-                    animate={{
-                      background: formData.condition === 'new' 
-                        ? 'linear-gradient(to right, rgba(34, 211, 238, 0.05), transparent)'
-                        : 'linear-gradient(to right, rgba(34, 211, 238, 0.1), transparent)'
-                    }}
-                    transition={{ duration: 0.3 }}
-                  />
-                  {formData.condition === 'new' && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-300/60"
-                    >
-                      🔒
-                    </motion.div>
-                  )}
-                </div>
-              </div>
+              {/* Max Km removed */}
 
-              {/* Year Input */}
-              <div className="space-y-2">
-                <Label className={`flex items-center gap-2 ${formData.condition === 'new' ? 'text-blue-300/50' : 'text-blue-200'}`}>
-                  <motion.div
-                    animate={{ opacity: formData.condition === 'new' ? 0.3 : 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    📅
-                  </motion.div>
-                  Minimum Year
-                  {formData.condition === 'new' && (
-                    <span className="text-xs text-blue-300/70 ml-2">(Auto-set for new vehicles)</span>
-                  )}
-                </Label>
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder={formData.condition === 'new' ? 'Current model year' : 'e.g., 2018 or newer'}
-                    value={formData.condition === 'new' ? 'Current Model Year' : formData.year}
-                    onChange={(e) => {
-                      if (formData.condition !== 'new') {
-                        setFormData({ ...formData, year: e.target.value });
-                      }
-                    }}
-                    disabled={formData.condition === 'new'}
-                    className={`border-blue-400/30 text-blue-100 placeholder:text-blue-300/50 focus:border-blue-400 focus:ring-blue-400/30 transition-all duration-300 ${
-                      formData.condition === 'new' 
-                        ? 'bg-black/20 border-blue-400/20 text-blue-200/50 cursor-not-allowed' 
-                        : 'bg-black/40 hover:bg-black/50'
-                    }`}
-                  />
-                  <motion.div 
-                    className="absolute inset-0 rounded-md pointer-events-none"
-                    animate={{
-                      background: formData.condition === 'new' 
-                        ? 'linear-gradient(to right, rgba(168, 85, 247, 0.05), transparent)'
-                        : 'linear-gradient(to right, rgba(168, 85, 247, 0.1), transparent)'
-                    }}
-                    transition={{ duration: 0.3 }}
-                  />
-                  {formData.condition === 'new' && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-300/60"
-                    >
-                      🔒
-                    </motion.div>
-                  )}
-                </div>
-              </div>
+              {/* Minimum Year removed */}
           </motion.div>
 
           {/* Submit Button */}
